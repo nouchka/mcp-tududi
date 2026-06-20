@@ -13,10 +13,26 @@ import (
 )
 
 const (
-	defaultMaxRetries = 30
-	defaultRetryDelay = 2 * time.Second
-	defaultMCPURL     = "http://localhost:8080"
+	defaultMaxRetries    = 30
+	defaultRetryDelay    = 2 * time.Second
+	defaultMCPURL        = "http://localhost:8080"
+	defaultHTTPTimeout   = 10 * time.Second
 )
+
+var httpClient *http.Client
+
+func init() {
+	// Create HTTP client with timeout
+	timeout := defaultHTTPTimeout
+	if envTimeout := os.Getenv("HTTP_TIMEOUT_SECONDS"); envTimeout != "" {
+		if val, err := strconv.Atoi(envTimeout); err == nil {
+			timeout = time.Duration(val) * time.Second
+		}
+	}
+	httpClient = &http.Client{
+		Timeout: timeout,
+	}
+}
 
 func main() {
 	// Get the MCP server URL from environment or use default
@@ -72,17 +88,15 @@ func testHealthWithRetries(mcpURL string, maxRetries int, delay time.Duration) b
 	fmt.Printf("Checking health endpoint: %s/health\n", mcpURL)
 
 	for attempt := 1; attempt <= maxRetries; attempt++ {
-		resp, err := http.Get(mcpURL + "/health")
+		resp, err := httpClient.Get(mcpURL + "/health")
 		if err == nil {
+			defer resp.Body.Close()
 			if resp.StatusCode == http.StatusOK {
 				body, err := io.ReadAll(resp.Body)
-				resp.Body.Close()
 				if err == nil {
 					fmt.Printf("✓ Health check passed (attempt %d/%d): %s\n", attempt, maxRetries, string(body))
 					return true
 				}
-			} else {
-				resp.Body.Close()
 			}
 		}
 
@@ -100,7 +114,7 @@ func testTools(mcpURL string) bool {
 	fmt.Println("\nTest 2: Get Tools")
 	fmt.Printf("Checking tools endpoint: %s/tools\n", mcpURL)
 
-	resp, err := http.Get(mcpURL + "/tools")
+	resp, err := httpClient.Get(mcpURL + "/tools")
 	if err != nil {
 		fmt.Printf("✗ Error: %v\n", err)
 		return false
@@ -158,7 +172,7 @@ func testCallTool(mcpURL string) bool {
 		return false
 	}
 
-	resp, err := http.Post(
+	resp, err := httpClient.Post(
 		mcpURL+"/call_tool",
 		"application/json",
 		bytes.NewReader(requestBody),

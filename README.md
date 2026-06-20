@@ -206,6 +206,79 @@ golangci-lint run
 └── README.md            # This file
 ```
 
+## Agent Integration
+
+The Tududi MCP server can be integrated with various AI agents to provide task management capabilities directly within your development workflow.
+
+### GitHub Copilot Integration
+
+To add the Tududi MCP server to GitHub Copilot, update your Copilot configuration file (typically `.github/copilot/config.json` or your Copilot settings):
+
+```json
+{
+  "mcpServers": [
+    {
+      "name": "tududi",
+      "url": "http://localhost:8080"
+    }
+  ]
+}
+```
+
+Or via environment configuration:
+```bash
+# Ensure the MCP server is running
+docker-compose up -d
+
+# The server will be available at http://localhost:8080
+# Configure your agent to connect to this endpoint
+```
+
+### Generic MCP Integration
+
+Any MCP-compatible agent can connect to the server using the HTTP interface:
+
+1. **Start the MCP server** using Docker Compose or local installation
+2. **Configure your agent** to connect to the server URL (default: `http://localhost:8080`)
+3. **Agent can now access** all available Tududi tools through the MCP protocol
+
+### Example: Calling Tools from an Agent
+
+Once connected, agents can call tools using the HTTP endpoints:
+
+```bash
+# Get available tools
+curl http://localhost:8080/tools
+
+# Create a task
+curl -X POST http://localhost:8080/call_tool \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "tududi_create_task",
+    "input": {
+      "title": "Implement feature X",
+      "description": "Add support for feature X"
+    }
+  }'
+
+# List all tasks
+curl -X POST http://localhost:8080/call_tool \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "tududi_list_tasks",
+    "input": {}
+  }'
+```
+
+### Environment Variables for Agent Integration
+
+When running the MCP server for agent integration, ensure these variables are properly configured:
+
+- `TUDUDI_API_URL`: URL of your Tududi instance
+- `TUDUDI_API_KEY`: Authentication key (recommended)
+- `HTTP_PORT`: Server port (default: 8080)
+- `LOG_LEVEL`: Logging verbosity (default: info)
+
 ## Docker Image
 
 Docker images are automatically built and published to GitHub Container Registry (ghcr.io) on every push to main and for all tags.

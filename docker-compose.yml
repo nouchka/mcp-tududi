@@ -10,12 +10,6 @@ services:
       LOG_LEVEL: ${TUDUDI_LOG_LEVEL:-info}
       TUDUDI_USER_EMAIL: ${TUDUDI_USER_EMAIL:-admin@example.com}
       TUDUDI_USER_PASSWORD: ${TUDUDI_USER_PASSWORD:-password}
-    healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/health"]
-      interval: 30s
-      timeout: 3s
-      retries: 3
-      start_period: 10s
     restart: unless-stopped
 
   mcp-tududi:
@@ -26,8 +20,7 @@ services:
     ports:
       - "8080:8080"
     depends_on:
-      tududi:
-        condition: service_healthy
+      - tududi
     environment:
       TUDUDI_API_URL: ${TUDUDI_API_URL:-http://tududi:3000}
       TUDUDI_API_KEY: ${TUDUDI_API_KEY:-}

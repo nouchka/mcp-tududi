@@ -7,20 +7,39 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"strconv"
 	"strings"
 	"time"
+)
+
+const (
+	defaultMaxRetries = 30
+	defaultRetryDelay = 2 * time.Second
+	defaultMCPURL     = "http://localhost:8080"
 )
 
 func main() {
 	// Get the MCP server URL from environment or use default
 	mcpURL := os.Getenv("MCP_SERVER_URL")
 	if mcpURL == "" {
-		mcpURL = "http://localhost:8080"
+		mcpURL = defaultMCPURL
 	}
 
-	// Get max retry attempts and delay
-	maxRetries := 30
-	retryDelay := time.Second * 2
+	// Get max retry attempts from environment or use default
+	maxRetries := defaultMaxRetries
+	if retries := os.Getenv("MAX_RETRIES"); retries != "" {
+		if val, err := strconv.Atoi(retries); err == nil {
+			maxRetries = val
+		}
+	}
+
+	// Get retry delay from environment or use default
+	retryDelay := defaultRetryDelay
+	if delay := os.Getenv("RETRY_DELAY_SECONDS"); delay != "" {
+		if val, err := strconv.Atoi(delay); err == nil {
+			retryDelay = time.Duration(val) * time.Second
+		}
+	}
 
 	fmt.Printf("Testing MCP server at %s\n", mcpURL)
 	fmt.Println(strings.Repeat("=", 50))
@@ -54,17 +73,17 @@ func testHealthWithRetries(mcpURL string, maxRetries int, delay time.Duration) b
 
 	for attempt := 1; attempt <= maxRetries; attempt++ {
 		resp, err := http.Get(mcpURL + "/health")
-		if err == nil && resp.StatusCode == http.StatusOK {
-			defer resp.Body.Close()
-			body, err := io.ReadAll(resp.Body)
-			if err == nil {
-				fmt.Printf("✓ Health check passed (attempt %d/%d): %s\n", attempt, maxRetries, string(body))
-				return true
+		if err == nil {
+			if resp.StatusCode == http.StatusOK {
+				body, err := io.ReadAll(resp.Body)
+				resp.Body.Close()
+				if err == nil {
+					fmt.Printf("✓ Health check passed (attempt %d/%d): %s\n", attempt, maxRetries, string(body))
+					return true
+				}
+			} else {
+				resp.Body.Close()
 			}
-		}
-
-		if resp != nil {
-			resp.Body.Close()
 		}
 
 		if attempt < maxRetries {

@@ -16,6 +16,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      target: server
     container_name: mcp-tududi
     ports:
       - "8080:8080"
@@ -35,3 +36,16 @@ services:
       retries: 3
       start_period: 5s
     restart: unless-stopped
+
+  mcp-cli:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: cli
+    depends_on:
+      mcp-tududi:
+        condition: service_healthy
+    environment:
+      MCP_SERVER_URL: ${MCP_SERVER_URL:-http://mcp-tududi:8080}
+    profiles:
+      - test

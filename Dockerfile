@@ -15,11 +15,14 @@ RUN go mod download
 # Copy source code
 COPY . .
 
-# Build the application
+# Build the server application
 RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o mcp-tududi ./cmd/server
 
-# Production stage
-FROM alpine:latest
+# Build the CLI application
+RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o mcp-cli ./cmd/cli
+
+# Production stage - Server
+FROM alpine:latest AS server
 
 WORKDIR /app
 
@@ -42,3 +45,14 @@ HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
 
 # Run the server
 CMD ["./mcp-tududi"]
+
+# CLI stage
+FROM alpine:latest AS cli
+
+WORKDIR /app
+
+# Copy binary from builder
+COPY --from=builder /app/mcp-cli .
+
+# Default entrypoint
+ENTRYPOINT ["./mcp-cli"]

@@ -38,3 +38,5 @@ vendor/
 /dist
 /bin
 /mcp-tududi
+/mcp-cli
+/cli

@@ -53,6 +53,26 @@ cp .env.example .env
 docker-compose up -d
 ```
 
+#### Testing with CLI
+
+A CLI test service is included to verify the MCP server is working correctly:
+
+```bash
+# Run the CLI test service (requires the mcp-tududi service to be running)
+docker-compose --profile test run mcp-cli
+
+# This will test:
+# - Health endpoint
+# - Tools listing endpoint
+# - Tool calling endpoint (example: list_tasks)
+```
+
+The CLI test service can also be run with a custom MCP server URL:
+
+```bash
+docker-compose --profile test run -e MCP_SERVER_URL=http://custom-host:8080 mcp-cli
+```
+
 ### Option 3: Local Installation
 
 ```bash
@@ -182,6 +202,9 @@ go mod download
 # Build the project
 go build -v ./cmd/server
 
+# Build the CLI test tool
+go build -v ./cmd/cli
+
 # Run tests
 go test -v ./...
 
@@ -189,17 +212,39 @@ go test -v ./...
 golangci-lint run
 ```
 
+### CLI Test Tool
+
+The CLI test tool can be used to verify the MCP server is working correctly:
+
+```bash
+# Build the CLI
+go build -o mcp-cli ./cmd/cli
+
+# Run the CLI test tool
+# Default MCP server URL is http://localhost:8080
+./mcp-cli
+
+# Or with a custom MCP server URL
+MCP_SERVER_URL=http://example.com:8080 ./mcp-cli
+```
+
+The CLI performs the following tests:
+- **Health Check**: Verifies the server is responding (with retries)
+- **Tools Endpoint**: Lists all available MCP tools
+- **Tool Execution**: Calls a sample tool (list_tasks) to verify functionality
+
 ### Project Structure
 
 ```
 .
 ├── cmd/
-│   └── server/          # Application entry point
+│   ├── server/          # Application entry point
+│   └── cli/             # CLI test tool
 ├── internal/
 │   ├── client/          # Tududi API client
 │   ├── config/          # Configuration management
 │   └── mcp/             # MCP server implementation
-├── Dockerfile           # Docker container definition
+├── Dockerfile           # Docker container definition (multi-stage)
 ├── docker-compose.yml   # Docker Compose configuration
 ├── go.mod               # Go module definition
 ├── go.sum               # Go module checksums

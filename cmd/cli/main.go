@@ -90,13 +90,20 @@ func testHealthWithRetries(mcpURL string, maxRetries int, delay time.Duration) b
 	for attempt := 1; attempt <= maxRetries; attempt++ {
 		resp, err := httpClient.Get(mcpURL + "/health")
 		if err == nil {
-			defer resp.Body.Close()
-			if resp.StatusCode == http.StatusOK {
-				body, err := io.ReadAll(resp.Body)
-				if err == nil {
-					fmt.Printf("✓ Health check passed (attempt %d/%d): %s\n", attempt, maxRetries, string(body))
-					return true
+			// Use anonymous function to ensure body is closed in each iteration
+			success := func() bool {
+				defer resp.Body.Close()
+				if resp.StatusCode == http.StatusOK {
+					body, err := io.ReadAll(resp.Body)
+					if err == nil {
+						fmt.Printf("✓ Health check passed (attempt %d/%d): %s\n", attempt, maxRetries, string(body))
+						return true
+					}
 				}
+				return false
+			}()
+			if success {
+				return true
 			}
 		}
 

@@ -142,7 +142,7 @@ func testCallTool(mcpURL string) bool {
 	resp, err := http.Post(
 		mcpURL+"/call_tool",
 		"application/json",
-		io.NopCloser(bytes.NewReader(requestBody)),
+		bytes.NewReader(requestBody),
 	)
 	if err != nil {
 		fmt.Printf("✗ Error: %v\n", err)

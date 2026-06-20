@@ -1,0 +1,24 @@
+version: '3.8'
+
+services:
+  mcp-tududi:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: mcp-tududi
+    ports:
+      - "8080:8080"
+    environment:
+      TUDUDI_API_URL: ${TUDUDI_API_URL:-http://localhost:3000}
+      TUDUDI_API_KEY: ${TUDUDI_API_KEY:-}
+      TUDUDI_EMAIL: ${TUDUDI_EMAIL:-}
+      TUDUDI_PASSWORD: ${TUDUDI_PASSWORD:-}
+      HTTP_PORT: ${HTTP_PORT:-8080}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 5s
+    restart: unless-stopped
